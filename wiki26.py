@@ -1,5 +1,5 @@
 import streamlit as st
-import Wikipedia-API
+import wikipediaapi
 import datetime
 from reportlab.lib.pagesizes import letter
 from reportlab.pdfgen import canvas
