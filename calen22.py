@@ -1,7 +1,6 @@
 import streamlit as st
 from datetime import datetime, date
 import pandas as pd
-import matplotlib.pyplot as plt
 import pickle
 import os
 
@@ -95,32 +94,6 @@ def show_reminders():
     else:
         st.write("No reminders set.")
 
-# Visualization functions
-def visualize_event_statistics():
-    if st.session_state.events:
-        event_dates = [event['date'] for event in st.session_state.events]
-        event_counts = pd.Series(event_dates).value_counts()
-        
-        plt.figure(figsize=(10, 5))
-        event_counts.plot(kind='bar')
-        plt.title('Event Frequency by Date')
-        plt.xlabel('Date')
-        plt.ylabel('Number of Events')
-        st.pyplot(plt)
-    else:
-        st.write("No events to visualize.")
-
-def analyze_event_categories():
-    if st.session_state.events:
-        categories = pd.Series([event['reminder'] for event in st.session_state.events])
-        category_counts = categories.value_counts()
-
-        plt.figure(figsize=(10, 5))
-        category_counts.plot(kind='pie', autopct='%1.1f%%')
-        plt.title('Event Reminder Distribution')
-        st.pyplot(plt)
-    else:
-        st.write("No events to analyze.")
 
 # Astrology function
 def determine_astrological_sign(dob):
@@ -156,7 +129,7 @@ def main():
 
     if check_password():
         st.sidebar.header("Navigation")
-        page = st.sidebar.radio("Go to", ["Home", "Event Management", "Age Calculation", "Reminders", "Statistics", "Astrology"])
+        page = st.sidebar.radio("Go to", ["Home", "Event Management", "Age Calculation", "Reminders", "Astrology"])
 
         # Home page
         if page == "Home":
@@ -221,12 +194,6 @@ def main():
                 show_reminders()
             st.write("Reminders List:")
             show_reminders()
-
-        # Statistics page
-        elif page == "Statistics":
-            st.subheader("Event Statistics")
-            visualize_event_statistics()
-            analyze_event_categories()
 
         # Astrology page
         elif page == "Astrology":
