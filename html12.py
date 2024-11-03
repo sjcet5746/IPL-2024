@@ -30,9 +30,11 @@ def main():
 </body>
 </html>"""
 
-    # Initialize session state for HTML code if it doesn't exist
+    # Initialize session state for HTML code and run state if they don't exist
     if 'html_code' not in st.session_state:
         st.session_state.html_code = example_html
+    if 'run_clicked' not in st.session_state:
+        st.session_state.run_clicked = False
 
     # Sidebar for controls
     st.sidebar.header("Controls")
@@ -41,14 +43,15 @@ def main():
     # Buttons in the sidebar
     if st.sidebar.button("New File"):
         st.session_state.html_code = example_html  # Reset to example code
+        st.session_state.run_clicked = False
         st.success("New file created with example code.")
 
     # File uploader for "Open File" functionality
     uploaded_file = st.sidebar.file_uploader("Open File", type=["html", "htm"])
     if uploaded_file is not None:
-        # Read the file as a string and set it as the HTML code
         file_content = uploaded_file.read().decode("utf-8")
         st.session_state.html_code = file_content
+        st.session_state.run_clicked = False
         st.success(f"Loaded content from {uploaded_file.name}")
 
     if st.sidebar.button("Download HTML"):
@@ -66,14 +69,22 @@ def main():
     # Check if the code has changed
     if updated_code != st.session_state.html_code:
         st.session_state.html_code = updated_code
+        st.session_state.run_clicked = False  # Reset run state when code changes
 
-    # Display the live output of the HTML, CSS, and JavaScript code below the editor
-    st.markdown("## Live Output:")
-    # Embedding the HTML code in an iframe with srcdoc to support live rendering
-    output_html = f"""
-    <iframe srcdoc="{st.session_state.html_code.replace('"', '&quot;')}" style="width: 100%; height: 500px; border: none;"></iframe>
-    """
-    st.components.v1.html(output_html, height=500)
+    # Run button
+    if st.button("Run"):
+        st.session_state.run_clicked = True
+
+    # Display the live output of the HTML, CSS, and JavaScript code only when Run is clicked
+    if st.session_state.run_clicked:
+        st.markdown("## Live Output:")
+        # Embedding the HTML code in an iframe with srcdoc to support live rendering
+        output_html = f"""
+        <iframe srcdoc="{st.session_state.html_code.replace('"', '&quot;')}" style="width: 100%; height: 500px; border: none;"></iframe>
+        """
+        st.components.v1.html(output_html, height=500)
+    else:
+        st.info("Click 'Run' to display the output.")
 
 if __name__ == "__main__":
     main()
