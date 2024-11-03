@@ -1,19 +1,30 @@
 import streamlit as st
 
 def main():
-    st.title("HTML Code Editor with Error Checking")
+    st.title("HTML, CSS, and JavaScript Code Editor")
 
-    # Static example of HTML code
+    # Static example of HTML code with CSS and JavaScript
     example_html = """<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sample HTML</title>
+    <title>Sample HTML with CSS and JavaScript</title>
+    <style>
+        body { font-family: Arial, sans-serif; }
+        h1 { color: blue; }
+        p { color: green; }
+    </style>
 </head>
 <body>
     <h1>Hello, World!</h1>
-    <p>This is a sample HTML code.</p>
+    <p>This is a sample HTML code with CSS and JavaScript.</p>
+    <button onclick="displayMessage()">Click Me</button>
+    <script>
+        function displayMessage() {
+            alert('Button clicked!');
+        }
+    </script>
 </body>
 </html>"""
 
@@ -48,15 +59,17 @@ def main():
         )
 
     # HTML code editor
-    updated_code = st.text_area("Edit HTML Code Here", st.session_state.html_code, height=300)
+    updated_code = st.text_area("Edit HTML, CSS, and JavaScript Code Here", st.session_state.html_code, height=300)
     
     # Check if the code has changed
     if updated_code != st.session_state.html_code:
         st.session_state.html_code = updated_code
 
-    # Display the live output of the HTML code below the editor
+    # Display the live output of the HTML, CSS, and JavaScript code below the editor
     st.markdown("## Live Output:")
-    output_html = f"<div style='height: 500px; overflow-y: auto; border: 1px solid #ccc; padding: 10px;'><iframe srcdoc='{st.session_state.html_code}' style='width: 100%; height: 100%; border: none;'></iframe></div>"
+    output_html = f"""
+    <iframe srcdoc="{st.session_state.html_code}" style='width: 100%; height: 500px; border: none;'></iframe>
+    """
     st.markdown(output_html, unsafe_allow_html=True)
 
 if __name__ == "__main__":
