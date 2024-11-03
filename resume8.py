@@ -1,14 +1,5 @@
 import streamlit as st
-from gtts import gTTS
 from datetime import datetime
-
-def text_to_speech(text, filename, lang):
-    # Create a gTTS object with the specified language
-    tts = gTTS(text=text, lang=lang)
-    
-    # Save the spoken text to an MP3 file
-    tts.save(filename)
-    return filename
 
 # Streamlit app
 st.title("Text to Speech Converter")
@@ -56,12 +47,12 @@ languages = {
 
 # Top 10 Indian languages
 indian_languages = {
-    "hi": "हिन्दी (Hindi) - क्वांटम कंप्यूटिंग एक प्रकार की गणना है जो क्वांटम यांत्रिकी की अद्वितीय विशेषताओं का लाभ उठाती है।",
+    "hi": "हिन्दी (Hindi) - क्वांटम कंप्यूटिंग एक प्रकार की गणना है जो क्वांटम यांत्रिकी की अद्वितीय विशेषताओं का लाभ उठाती है。",
     "bn": "বাংলা (Bengali) - কোয়ান্টাম কম্পিউটিং হল একটি প্রকারের গণনা যা কোয়ান্টাম মেকানিক্সের অনন্য বৈশিষ্ট্যগুলিকে কাজে লাগায়।",
     "te": "తెలుగు (Telugu) - క్వాంటం కంప్యూటింగ్ అనేది క్వాంటం యాంత్రిక శాస్త్రం యొక్క ప్రత్యేకతలను ఉపయోగించే ఒక శ్రేణి కంప్యూటింగ్.",
     "ta": "தமிழ் (Tamil) - குவாண்டம் கணினி என்பது குவாண்டம் மெக்கானிக்சின் தனிப்பட்ட பண்புகளை பயன்படுத்தும் கணினி வகையாகும்.",
     "ml": "മലയാളം (Malayalam) - ക്വാണ്ടം കമ്പ്യൂട്ടിംഗ് ഒരു കമ്പ്യൂട്ടിംഗാണ്, ക്വാണ്ടം യാന്ത്രികതയുടെ പ്രത്യേകതകൾ പ്രയോജനപ്പെടുത്തുന്നു.",
-    "kn": "ಕನ್ನಡ (Kannada) - ಕ್ವಾಂಟಮ್ ಕಂಪ್ಯೂಟಿಂಗ್ ಎಂದರೆ ಕ್ವಾಂಟಮ್ ಮೆಕ್ಯಾನಿಕ್‌ಗಳ ವಿಶೇಷತೆಗಳನ್ನು ಬಳಸುವ ಪ್ರಕಾರದ ಕಂಪ್ಯೂಟಿಂಗ್.",
+    "kn": "ಕನ್ನಡ (Kannada) - ಕ್ವಾಂಟಮ್ ಕಂಪ್ಯೂಟಿಂಗ್ ಎಂದರೆ ಕ್ವಾಂಟ್ ಮೆಕ್ಯಾನಿಕ್‌ಗಳ ವಿಶೇಷತೆಗಳನ್ನು ಬಳಸುವ ಪ್ರಕಾರದ ಕಂಪ್ಯೂಟಿಂಗ್.",
     "mr": "मराठी (Marathi) - क्वांटम संगणक एक प्रकारचा संगणक आहे जो क्वांटम यांत्रिकीच्या अद्वितीय गुणधर्मांचा उपयोग करतो.",
     "gu": "ગુજરાતી (Gujarati) - ક્વાન્ટમ કમ્પ્યુટિંગ એ એવી ગણતરી છે જે ક્વાન્ટમ મિકેનિક્સની વિશિષ્ટતાઓનો ઉપયોગ કરે છે.",
     "or": "ଓଡ଼ିଆ (Odia) - କ୍ୱାଣ୍ଟମ୍ କମ୍ପ୍ୟୁଟିଂ ହେଉଛି ଏକ ପ୍ରକାରର କମ୍ପ୍ୟୁଟିଂ, ଯାହା କ୍ୱାଣ୍ଟମ୍ ମେକାନିକ୍ସର ଅନନ୍ୟ ଗୁଣଧର୍ମଗୁଡିକୁ ଲାଭ ଦେଇଥାଏ।",
@@ -74,22 +65,7 @@ languages.update(indian_languages)
 # User input
 selected_language = st.selectbox("Select the language:", list(languages.keys()))
 example_text = languages[selected_language]
-user_input = st.text_area("Enter the text you want to be spoken (or modify the example):", example_text)
-filename = st.text_input("Enter the filename to save the audio (including .mp3 extension):", "output.mp3")
-
-# Ensure the filename ends with .mp3
-if filename and not filename.endswith('.mp3'):
-    filename += '.mp3'
-
-if st.button("Convert to Speech"):
-    if user_input and filename:
-        saved_file = text_to_speech(user_input, filename, selected_language)
-        st.success(f"Saved audio as {saved_file}")
-        
-        # Display audio player
-        st.audio(saved_file, format='audio/mp3')
-    else:
-        st.error("Please enter both the text and a valid filename.")
+user_input = st.text_area("Enter the text you want to modify:", example_text)
 
 # Footer
 st.markdown("<footer style='text-align: center; padding: 10px;'><small>© 2024 SriKrishna Text to Speech Converter. All rights reserved.</small></footer>", unsafe_allow_html=True)
