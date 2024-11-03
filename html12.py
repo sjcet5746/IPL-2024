@@ -1,5 +1,4 @@
 import streamlit as st
-from streamlit_ace import st_ace
 from bs4 import BeautifulSoup, FeatureNotFound
 
 def beautify_html(html_code):
@@ -81,14 +80,9 @@ def main():
         else:
             st.session_state.html_errors = ["No errors found."]
 
-    # Code editor for HTML
-    updated_code = st_ace(
-        value=st.session_state.html_code,
-        language="html",
-        theme="github",
-        height=500,  # Height for the code editor
-    )
-
+    # HTML code editor
+    updated_code = st.text_area("Edit HTML Code Here", st.session_state.html_code, height=300)
+    
     # Check if the code has changed
     if updated_code != st.session_state.html_code:
         st.session_state.html_code = updated_code
