@@ -1,7 +1,6 @@
 import streamlit as st
 import requests
 import pandas as pd
-import matplotlib.pyplot as plt
 from datetime import datetime, timedelta
 
 # Define countries dictionary
@@ -106,19 +105,6 @@ if st.button("Fetch News"):
             st.write("Published At:", article['publishedAt'])
             st.write("Source:", article['source']['name'])
             st.markdown("---")
-
-        # Visualization of trends in news topics
-        dates = [article['publishedAt'][:10] for article in news_articles]
-        date_counts = pd.Series(dates).value_counts().sort_index()
-
-        st.subheader("Trends in News Topics Over Time")
-        plt.figure(figsize=(10, 5))
-        plt.plot(date_counts.index, date_counts.values, marker='o')
-        plt.xticks(rotation=45)
-        plt.xlabel('Date')
-        plt.ylabel('Number of Articles')
-        plt.title('Frequency of Articles Over Time')
-        st.pyplot(plt)
 
     else:
         st.write("No articles found.")
