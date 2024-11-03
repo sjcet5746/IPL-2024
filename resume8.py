@@ -1,72 +1,4 @@
 import streamlit as st
-from reportlab.lib.pagesizes import letter
-from reportlab.pdfgen import canvas
-from io import BytesIO
-
-# Function to generate the resume PDF
-def create_resume(data):
-    # Create a BytesIO buffer for the PDF
-    buffer = BytesIO()
-    p = canvas.Canvas(buffer, pagesize=letter)
-    width, height = letter
-
-    # Title
-    p.setFont("Helvetica-Bold", 16)
-    p.drawString(100, height - 50, data["name"])
-    p.setFont("Helvetica", 12)
-    p.drawString(100, height - 70, data["profession"])
-    p.drawString(100, height - 90, data["contact_info"])
-
-    # Add student summary
-    p.setFont("Helvetica-Bold", 14)
-    p.drawString(100, height - 120, "Summary:")
-    p.setFont("Helvetica", 12)
-    y = height - 140
-    for line in data["summary"].split('\n'):
-        p.drawString(100, y, line)
-        y -= 15  # Move down for the next line
-
-    # Education Section
-    p.setFont("Helvetica-Bold", 14)
-    p.drawString(100, y, "Education:")
-    p.setFont("Helvetica", 12)
-    y -= 20
-    for edu in data["education"]:
-        p.drawString(100, y, edu)
-        y -= 15
-
-    # Skills Section
-    p.setFont("Helvetica-Bold", 14)
-    p.drawString(100, y, "Skills:")
-    p.setFont("Helvetica", 12)
-    y -= 20
-    for skill in data["skills"]:
-        p.drawString(100, y, skill)
-        y -= 15
-
-    # Certifications Section
-    p.setFont("Helvetica-Bold", 14)
-    p.drawString(100, y, "Certifications:")
-    p.setFont("Helvetica", 12)
-    y -= 20
-    for cert in data["certifications"]:
-        p.drawString(100, y, cert)
-        y -= 15
-
-    # Honors & Awards Section
-    p.setFont("Helvetica-Bold", 14)
-    p.drawString(100, y, "Honors & Awards:")
-    p.setFont("Helvetica", 12)
-    y -= 20
-    for award in data["awards"]:
-        p.drawString(100, y, award)
-        y -= 15
-
-    # Save the PDF to the buffer
-    p.save()
-    buffer.seek(0)
-
-    return buffer
 
 # Streamlit app
 def main():
@@ -91,7 +23,7 @@ def main():
         social_name = st.text_input(f"Social Media Name {i + 1}", key=f"social_name_{i}")
         social_link = st.text_input(f"Social Media Link {i + 1}", key=f"social_link_{i}")
         social_photo = st.file_uploader(f"Upload Photo for {social_name}", type=["jpg", "jpeg", "png"], key=f"social_photo_{i}")
-        
+
         if social_name and social_link:
             social_links[social_name] = social_link
             if social_photo:
@@ -154,28 +86,8 @@ def main():
 
     st.markdown(preview_markdown)
 
-    if st.button("Generate Resume"):
-        user_data = {
-            "name": name,
-            "profession": profession,
-            "contact_info": contact_info,
-            "social_links": social_links,
-            "social_photos": social_photos,
-            "photo": photo,
-            "summary": summary,
-            "education": education.strip().split('\n'),
-            "skills": skills.strip().split('\n'),
-            "certifications": certifications,
-            "awards": awards.strip().split('\n'),
-        }
-
-        # Create resume PDF
-        pdf_buffer = create_resume(user_data)
-        
-        # Provide download button
-        st.download_button("Download Resume", pdf_buffer, file_name="resume.pdf", mime='application/pdf')
-
-        # Display the resume
+    if st.button("Print the Resume"):
+        # Display the resume for printing
         st.header("Your Resume")
         st.write(f"**Name:** {name}")
         st.write(f"**Profession:** {profession}")
