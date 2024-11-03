@@ -1,137 +1,95 @@
 import streamlit as st
-import wikipediaapi
-import datetime
-from reportlab.lib.pagesizes import letter
-from reportlab.pdfgen import canvas
-import tempfile
 from gtts import gTTS
-import speech_recognition as sr
+from datetime import datetime
 
-# Wikipedia summary function with character limit and summary levels
-def get_wikipedia_summary(query, lang_code, char_limit, summary_level):
-    user_agent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko)"
-    wiki = wikipediaapi.Wikipedia(language=lang_code, extract_format=wikipediaapi.ExtractFormat.WIKI, user_agent=user_agent)
-    page = wiki.page(query)
-    if not page.exists():
-        return "Page not found."
-    if summary_level == "Brief":
-        return page.summary[:char_limit]
-    elif summary_level == "Detailed":
-        return page.summary  # Full summary
-    elif summary_level == "Bullet Points":
-        points = page.summary.split('. ')
-        return '\n'.join(f"- {p.strip()}" for p in points if p)[:char_limit]
-
-# Save chat history as PDF with a user-defined filename
-def save_chat_history_as_pdf(chat_history, file_name):
-    timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp_file:
-        pdf = canvas.Canvas(tmp_file.name, pagesize=letter)
-        pdf.setTitle(file_name)
-        pdf.drawString(30, 750, f"{file_name} - Saved on {timestamp}")
-        y_position = 720
-        for query, response in chat_history:
-            pdf.drawString(30, y_position, f"User: {query}")
-            y_position -= 20
-            pdf.drawString(30, y_position, f"Bot: {response}")
-            y_position -= 40
-            if y_position < 40:
-                pdf.showPage()
-                y_position = 750
-        pdf.save()
-    return tmp_file.name
-
-# Text-to-speech using gTTS
-def text_to_speech(text, filename, lang="en"):
+def text_to_speech(text, filename, lang):
+    # Create a gTTS object with the specified language
     tts = gTTS(text=text, lang=lang)
+    
+    # Save the spoken text to an MP3 file
     tts.save(filename)
     return filename
 
-# Voice search function
-def voice_search(lang_code):
-    recognizer = sr.Recognizer()
-    with sr.Microphone() as source:
-        st.write("Listening...")
-        audio = recognizer.listen(source)
-        try:
-            # Recognize the speech based on the specified language
-            query = recognizer.recognize_google(audio, language=lang_code)
-            st.success(f"You said: {query}")
-            return query
-        except sr.UnknownValueError:
-            st.error("Sorry, I could not understand the audio.")
-            return None
-        except sr.RequestError as e:
-            st.error(f"Could not request results from Google Speech Recognition service; {e}")
-            return None
+# Streamlit app
+st.title("Text to Speech Converter")
 
-# Initialize the Streamlit app
-def main():
-    st.set_page_config(page_title="Wikipedia Summary & Text-to-Speech", layout="wide")
+# Sidebar
+st.sidebar.header("Settings")
+st.sidebar.subheader("Last seen")
+st.sidebar.write(datetime.now().strftime("%Y-%m-%d %H:%M:%S"))  # Display current date and time
 
-    # Sidebar options
-    st.sidebar.title("Options")
-    lang_map = {
-        "English": "en",
-        "Spanish": "es",
-        "Chinese": "zh",
-        "Hindi": "hi",
-        "Telugu": "te"
-    }
-    selected_lang = st.sidebar.selectbox("Wikipedia Language", list(lang_map.keys()), key="language_selector")
-    summary_levels = ["Brief", "Detailed", "Bullet Points"]
-    summary_level = st.sidebar.selectbox("Summarization Level", summary_levels)
-    char_limit = st.sidebar.slider("Character Limit", min_value=100, max_value=2000, value=500, step=100)
+# Definition of quantum computing
+quantum_computing_definition = (
+    "Quantum computing is a type of computation that harnesses the unique properties of quantum mechanics. "
+    "Unlike classical computers that use bits as the smallest unit of data, quantum computers use quantum bits, "
+    "or qubits, which can exist in multiple states at once. This allows quantum computers to process complex "
+    "calculations much faster than classical computers, making them suitable for tasks such as cryptography, "
+    "optimization problems, and simulations of quantum systems."
+)
 
-    # Chat history and favorites in session state
-    if "chat_history" not in st.session_state:
-        st.session_state.chat_history = []
-    if "favorites" not in st.session_state:
-        st.session_state.favorites = []
+# Language selection with example texts
+languages = {
+    "en": quantum_computing_definition,  # English
+    "es": "La computación cuántica es un tipo de computación que aprovecha las propiedades únicas de la mecánica cuántica.",  # Spanish
+    "zh": "量子计算是一种利用量子力学独特性质的计算方式。",  # Chinese
+    "hi": "क्वांटम कंप्यूटिंग एक प्रकार की गणना है जो क्वांटम यांत्रिकी की अद्वितीय विशेषताओं का लाभ उठाती है।",  # Hindi
+    "ar": "الحوسبة الكمومية هي نوع من الحوسبة التي تستفيد من الخصائص الفريدة لميكانيكا الكم.",  # Arabic
+    "bn": "কোয়ান্টাম কম্পিউটিং হল একটি প্রকারের গণনা যা কোয়ান্টাম মেকানিক্সের অনন্য বৈশিষ্ট্যগুলিকে কাজে লাগায়।",  # Bengali
+    "pt": "A computação quântica é um tipo de computação que aproveita as propriedades únicas da mecânica quântica.",  # Portuguese
+    "ru": "Квантовые вычисления — это тип вычислений, который использует уникальные свойства квантовой механики.",  # Russian
+    "ja": "量子コンピューティングは、量子力学の独自の特性を利用する計算の一種です。",  # Japanese
+    "de": "Quantencomputing ist eine Art von Berechnung, die die einzigartigen Eigenschaften der Quantenmechanik nutzt.",  # German
+    "fr": "L'informatique quantique est un type de calcul qui exploite les propriétés uniques de la mécanique quantique.",  # French
+    "it": "Il calcolo quantistico è un tipo di calcolo che sfrutta le proprietà uniche della meccanica quantistica.",  # Italian
+    "ko": "양자 컴퓨팅은 양자 역학의 고유한 특성을 활용하는 계산 유형입니다.",  # Korean
+    "tr": "Kuantum hesaplama, kuantum mekaniğinin benzersiz özelliklerini kullanan bir hesaplama türüdür.",  # Turkish
+    "vi": "Điện toán lượng tử là một loại hình tính toán khai thác những đặc tính độc đáo của cơ học lượng tử.",  # Vietnamese
+    "pl": "Komputery kwantowe to rodzaj obliczeń, które wykorzystują unikalne właściwości mechaniki kwantowej.",  # Polish
+    "uk": "Квантові обчислення — це тип обчислень, який використовує унікальні властивості квантової механіки.",  # Ukrainian
+    "fa": "محاسبات کوانتومی نوعی محاسبه است که از ویژگی‌های منحصر به فرد مکانیک کوانتومی بهره می‌برد.",  # Persian
+    "th": "การคำนวณควอนตัมเป็นประเภทของการคำนวณที่ใช้ประโยชน์จากคุณสมบัติที่ไม่เหมือนใครของกลศาสตร์ควอนตัม.",  # Thai
+    "ml": "ക്വാണ്ടം കമ്പ്യൂട്ടിംഗ് ഒരു കമ്പ്യൂട്ടിംഗാണ്, ക്വാണ്ടം യാന്ത്രികതയുടെ പ്രത്യേകതകൾ പ്രയോജനപ്പെടുത്തുന്നു.",  # Malayalam
+    "ta": "குவாண்டம் கணினி என்பது குவாண்டம் மெக்கானிக்சின் தனிப்பட்ட பண்புகளை பயன்படுத்தும் கணினி வகையாகும்.",  # Tamil
+    "kn": "ಕ್ವಾಂಟಮ್ ಕಂಪ್ಯೂಟಿಂಗ್ ಎಂದರೆ ಕ್ವಾಂಟಮ್ ಮೆಕ್ಯಾನಿಕ್‌ಗಳ ವಿಶೇಷತೆಗಳನ್ನು ಬಳಸುವ ಪ್ರಕಾರದ ಕಂಪ್ಯೂಟಿಂಗ್.",  # Kannada
+    "te": "క్వాంటం కంప్యూటింగ్ అనేది క్వాంటం యాంత్రిక శాస్త్రం యొక్క ప్రత్యేకతలను ఉపయోగించే ఒక శ్రేణి కంప్యూటింగ్."  # Telugu
+}
 
-    st.title("Wikipedia Summary & Text-to-Speech")
-    
-    # Text input for manual search
-    query = st.text_input("Enter a topic to search on Wikipedia:")
+# Top 10 Indian languages
+indian_languages = {
+    "hi": "हिन्दी (Hindi) - क्वांटम कंप्यूटिंग एक प्रकार की गणना है जो क्वांटम यांत्रिकी की अद्वितीय विशेषताओं का लाभ उठाती है।",
+    "bn": "বাংলা (Bengali) - কোয়ান্টাম কম্পিউটিং হল একটি প্রকারের গণনা যা কোয়ান্টাম মেকানিক্সের অনন্য বৈশিষ্ট্যগুলিকে কাজে লাগায়।",
+    "te": "తెలుగు (Telugu) - క్వాంటం కంప్యూటింగ్ అనేది క్వాంటం యాంత్రిక శాస్త్రం యొక్క ప్రత్యేకతలను ఉపయోగించే ఒక శ్రేణి కంప్యూటింగ్.",
+    "ta": "தமிழ் (Tamil) - குவாண்டம் கணினி என்பது குவாண்டம் மெக்கானிக்சின் தனிப்பட்ட பண்புகளை பயன்படுத்தும் கணினி வகையாகும்.",
+    "ml": "മലയാളം (Malayalam) - ക്വാണ്ടം കമ്പ്യൂട്ടിംഗ് ഒരു കമ്പ്യൂട്ടിംഗാണ്, ക്വാണ്ടം യാന്ത്രികതയുടെ പ്രത്യേകതകൾ പ്രയോജനപ്പെടുത്തുന്നു.",
+    "kn": "ಕನ್ನಡ (Kannada) - ಕ್ವಾಂಟಮ್ ಕಂಪ್ಯೂಟಿಂಗ್ ಎಂದರೆ ಕ್ವಾಂಟಮ್ ಮೆಕ್ಯಾನಿಕ್‌ಗಳ ವಿಶೇಷತೆಗಳನ್ನು ಬಳಸುವ ಪ್ರಕಾರದ ಕಂಪ್ಯೂಟಿಂಗ್.",
+    "mr": "मराठी (Marathi) - क्वांटम संगणक एक प्रकारचा संगणक आहे जो क्वांटम यांत्रिकीच्या अद्वितीय गुणधर्मांचा उपयोग करतो.",
+    "gu": "ગુજરાતી (Gujarati) - ક્વાન્ટમ કમ્પ્યુટિંગ એ એવી ગણતરી છે જે ક્વાન્ટમ મિકેનિક્સની વિશિષ્ટતાઓનો ઉપયોગ કરે છે.",
+    "or": "ଓଡ଼ିଆ (Odia) - କ୍ୱାଣ୍ଟମ୍ କମ୍ପ୍ୟୁଟିଂ ହେଉଛି ଏକ ପ୍ରକାରର କମ୍ପ୍ୟୁଟିଂ, ଯାହା କ୍ୱାଣ୍ଟମ୍ ମେକାନିକ୍ସର ଅନନ୍ୟ ଗୁଣଧର୍ମଗୁଡିକୁ ଲାଭ ଦେଇଥାଏ।",
+    "pa": "ਪੰਜਾਬੀ (Punjabi) - ਕੁਆਂਟਮ ਕੰਪਿਊਟਿੰਗ ਇੱਕ ਕਿਸਮ ਦਾ ਕੰਪਿਊਟਿੰਗ ਹੈ ਜੋ ਕੁਆਂਟਮ ਮਕੈਨਿਕਸ ਦੇ ਵਿਲੱਖਣ ਗੁਣਾਂ ਦਾ ਲਾਭ ਲੈਂਦੀ ਹੈ।"
+}
 
-    # Button for voice search
-    if st.button("Voice Search"):
-        lang_code = lang_map[selected_lang]  # Get the language code for the selected language
-        voice_query = voice_search(lang_code)  # Pass the language code to the voice search
-        if voice_query:
-            query = voice_query  # Use the voice query if recognized
+# Combine Indian languages with existing languages
+languages.update(indian_languages)
 
-    # Display summary based on query and language selection
-    if query:
-        lang_code = lang_map[selected_lang]
-        summary = get_wikipedia_summary(query, lang_code, char_limit, summary_level)
-        st.markdown(f"### Summary for: {query}")
-        st.write(summary)
-        st.session_state.chat_history.append((query, summary))
+# User input
+selected_language = st.selectbox("Select the language:", list(languages.keys()))
+example_text = languages[selected_language]
+user_input = st.text_area("Enter the text you want to be spoken (or modify the example):", example_text)
+filename = st.text_input("Enter the filename to save the audio (including .mp3 extension):", "output.mp3")
 
-        # Save to favorites
-        if st.button("Add to Favorites"):
-            st.session_state.favorites.append((query, summary))
-            st.success("Added to favorites!")
+# Ensure the filename ends with .mp3
+if filename and not filename.endswith('.mp3'):
+    filename += '.mp3'
 
-        # Text-to-speech
-        tts_filename = f"{query}_speech.mp3"
-        if st.button("Play Text-to-Speech"):
-            text_to_speech(summary, tts_filename, lang=lang_code)
-            st.audio(tts_filename, format="audio/mp3")
+if st.button("Convert to Speech"):
+    if user_input and filename:
+        saved_file = text_to_speech(user_input, filename, selected_language)
+        st.success(f"Saved audio as {saved_file}")
+        
+        # Display audio player
+        st.audio(saved_file, format='audio/mp3')
+    else:
+        st.error("Please enter both the text and a valid filename.")
 
-    # Save chat history as PDF
-    file_name = st.sidebar.text_input("File Name to Save Chat", value="chat_history")
-    if st.sidebar.button("Save Chat as PDF"):
-        pdf_path = save_chat_history_as_pdf(st.session_state.chat_history, file_name)
-        with open(pdf_path, "rb") as pdf_file:
-            st.sidebar.download_button("Download PDF", pdf_file, file_name=f"{file_name}.pdf", mime="application/pdf")
-
-    # Display favorites
-    st.sidebar.write("### Favorites")
-    for i, (fav_query, fav_summary) in enumerate(st.session_state.favorites, 1):
-        st.sidebar.write(f"**{i}. {fav_query}**")
-        st.sidebar.write(fav_summary[:100] + "...")
-
-if __name__ == "__main__":
-    main()
+# Footer
+st.markdown("<footer style='text-align: center; padding: 10px;'><small>© 2024 SriKrishna Text to Speech Converter. All rights reserved.</small></footer>", unsafe_allow_html=True)
