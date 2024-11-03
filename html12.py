@@ -1,25 +1,4 @@
 import streamlit as st
-from bs4 import BeautifulSoup, FeatureNotFound
-
-def beautify_html(html_code):
-    """Format HTML code using BeautifulSoup."""
-    soup = BeautifulSoup(html_code, 'html.parser')
-    return soup.prettify()
-
-def check_html_errors(html_code):
-    """Check for common HTML errors such as unclosed tags or invalid structure."""
-    errors = []
-    try:
-        soup = BeautifulSoup(html_code, 'html.parser')
-        # Check for unclosed tags (BeautifulSoup automatically fixes them, so we notify the user)
-        fixed_html = soup.prettify()
-        if fixed_html != html_code:
-            errors.append("Warning: The HTML code has been modified to fix unclosed tags or other issues.")
-    except FeatureNotFound as e:
-        errors.append(f"Parsing Error: {str(e)}")
-    except Exception as e:
-        errors.append(f"Error: {str(e)}")
-    return errors
 
 def main():
     st.title("HTML Code Editor with Error Checking")
@@ -68,30 +47,12 @@ def main():
             mime="text/html"
         )
 
-    if st.sidebar.button("Format HTML"):
-        st.session_state.html_code = beautify_html(st.session_state.html_code)
-        st.success("HTML formatted successfully!")
-
-    # Error-checking button
-    if st.sidebar.button("Check for Errors"):
-        errors = check_html_errors(st.session_state.html_code)
-        if errors:
-            st.session_state.html_errors = errors
-        else:
-            st.session_state.html_errors = ["No errors found."]
-
     # HTML code editor
     updated_code = st.text_area("Edit HTML Code Here", st.session_state.html_code, height=300)
     
     # Check if the code has changed
     if updated_code != st.session_state.html_code:
         st.session_state.html_code = updated_code
-
-    # Display any HTML errors below the editor
-    if "html_errors" in st.session_state and st.session_state.html_errors:
-        st.markdown("## Error Messages:")
-        for error in st.session_state.html_errors:
-            st.warning(error)
 
     # Display the live output of the HTML code below the editor
     st.markdown("## Live Output:")
