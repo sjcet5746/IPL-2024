@@ -1,6 +1,5 @@
 import os
 import streamlit as st
-import speech_recognition as sr
 from datetime import datetime
 
 # Set up YouTube API
