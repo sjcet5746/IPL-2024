@@ -1,85 +1,129 @@
-import os
 import streamlit as st
-from datetime import datetime
+import requests
+import pandas as pd
+import matplotlib.pyplot as plt
+from datetime import datetime, timedelta
 
-# Set up YouTube API
-API_KEY = "AIzaSyA20DXMC3HeqHs9sOMQUQ041wEkgsoFXb4"  # Replace with your YouTube Data API v3 key
+# Define countries dictionary
+countries = {
+    'us': 'United States',
+    'in': 'India',
+    'gb': 'United Kingdom',
+    'ca': 'Canada',
+    'au': 'Australia',
+    'de': 'Germany',
+    'fr': 'France',
+    'it': 'Italy',
+    'jp': 'Japan',
+    'cn': 'China',
+    'br': 'Brazil',
+    'za': 'South Africa',
+    'ru': 'Russia',
+}
 
+def get_news(api_key, query=None, country='us', language='en', from_date=None, to_date=None):
+    url = 'https://newsapi.org/v2/everything'
+    params = {
+        'apiKey': api_key,
+        'q': query,
+        'from': from_date,
+        'to': to_date,
+        'language': language,
+        'pageSize': 100
+    }
 
-# Function to search YouTube videos
-def search_youtube(query, max_results=5):
     try:
-        request = youtube.search().list(
-            q=query,
-            part='id,snippet',
-            maxResults=max_results,
-            type='video'
-        )
-        response = request.execute()
-        
-        videos = []
-        for item in response['items']:
-            video_id = item['id']['videoId']
-            title = item['snippet']['title']
-            thumbnail = item['snippet']['thumbnails']['default']['url']
-            url = f'https://www.youtube.com/watch?v={video_id}'
-            videos.append({'title': title, 'url': url, 'video_id': video_id, 'thumbnail': thumbnail})
-        return videos
-    except Exception as e:
-        st.write(f"Error fetching videos: {e}")
+        response = requests.get(url, params=params)
+        response.raise_for_status()
+        news_data = response.json()
+        if news_data['status'] == 'ok':
+            return news_data['articles']
+        else:
+            st.error("Error fetching news: {}".format(news_data['message']))
+            return []
+
+    except requests.exceptions.RequestException as e:
+        st.error("HTTP Request failed: {}".format(e))
         return []
 
-# Function for voice recognition
-def voice_search():
-    recognizer = sr.Recognizer()
-    with sr.Microphone() as source:
-        st.write("Listening...")
-        audio = recognizer.listen(source)
-        try:
-            query = recognizer.recognize_google(audio)
-            st.success(f"You said: {query}")
-            return query
-        except sr.UnknownValueError:
-            st.error("Could not understand audio")
-            return ""
-        except sr.RequestError as e:
-            st.error(f"Could not request results from Google Speech Recognition service; {e}")
-            return ""
+# Important queries
+important_queries = [
+    "COVID-19", "Technology", "Politics", "Economy", "Health", 
+    "Environment", "Sports", "Entertainment", "Science", 
+    "Education", "Travel"
+]
 
-# Streamlit UI
-st.title("YouTube Video Search")
-st.write("Search for YouTube videos using text or voice.")
+# Streamlit UI setup
+st.set_page_config(page_title="News Fetcher", layout="wide")
+st.title("News Fetcher")
 
-# Button for voice search
-if st.button("Search by Voice"):
-    search_query = voice_search()
+# Store the last seen timestamp in session state
+if 'last_seen' not in st.session_state:
+    st.session_state['last_seen'] = datetime.now()
+last_seen = st.session_state['last_seen']
+
+# Display last seen timestamp
+st.sidebar.write(f"Last accessed: {last_seen.strftime('%Y-%m-%d %H:%M:%S')}")
+
+# Language selection
+language = st.selectbox("Select your preferred language:", 
+    options=[
+        ('en', 'English'), ('es', 'Spanish'), ('fr', 'French'), 
+        ('de', 'German'), ('it', 'Italian'), ('pt', 'Portuguese'), 
+        ('ar', 'Arabic'), ('zh', 'Chinese'), ('hi', 'Hindi'), 
+        ('te', 'Telugu')
+    ])
+
+# Country selection in the sidebar
+country = st.sidebar.selectbox("Select your country:", options=list(countries.keys()), format_func=lambda x: countries[x])
+
+# Sidebar for important queries
+st.sidebar.header("Important Queries")
+for query in important_queries:
+    if st.sidebar.button(query):
+        st.session_state.query = query
+
+# Input field for user queries
+if 'query' in st.session_state:
+    query = st.session_state.query
 else:
-    # User search input
-    search_query = st.text_input("Enter search query", value="Python programming")
+    query = st.text_input("Enter a search query:", placeholder="Type something...")
 
-if search_query:
-    st.write(f"Results for '{search_query}':")
-    videos = search_youtube(search_query)
+# Date pickers for filtering news articles
+st.write("Select the date range for previous news articles:")
+from_date = st.date_input("From", value=datetime.now() - timedelta(days=30))
+to_date = st.date_input("To", value=datetime.now())
 
-    # Display videos one by one
-    for video in videos:
-        st.image(video['thumbnail'])
-        st.write(f"**Title:** {video['title']}")
-        st.write(f"[Watch on YouTube]({video['url']})")
-        
-        # Add a button to play the video
-        st.video(video['url'])  # This embeds the YouTube video player
-        
-        st.write("---")
+# Button to fetch news
+if st.button("Fetch News"):
+    API_KEY ='43283de608cc43b7a49ad17ceda39636' # Replace with your actual News API key
+    news_articles = get_news(API_KEY, query=query, country=country, language=language, from_date=from_date, to_date=to_date)
 
-# Display last seen date and time
-st.sidebar.write("### Last Seen")
-last_seen_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-st.sidebar.write(f"Last seen on: {last_seen_time}")
+    if news_articles:
+        for i, article in enumerate(news_articles):
+            st.subheader(article['title'])
+            st.write(article['description'])
+            st.write("Published At:", article['publishedAt'])
+            st.write("Source:", article['source']['name'])
+            st.markdown("---")
 
-# Footer section at the bottom of the page
-st.write("---")
-st.write("### Footer")
-st.write("This application is built for educational purposes.")
-st.write("YouTube Data API is used for video searching.")
-st.write("Developed by SriKrishna")
+        # Visualization of trends in news topics
+        dates = [article['publishedAt'][:10] for article in news_articles]
+        date_counts = pd.Series(dates).value_counts().sort_index()
+
+        st.subheader("Trends in News Topics Over Time")
+        plt.figure(figsize=(10, 5))
+        plt.plot(date_counts.index, date_counts.values, marker='o')
+        plt.xticks(rotation=45)
+        plt.xlabel('Date')
+        plt.ylabel('Number of Articles')
+        plt.title('Frequency of Articles Over Time')
+        st.pyplot(plt)
+
+    else:
+        st.write("No articles found.")
+
+# Footer
+st.markdown("---")
+st.write("Developed by SriKrishna | © 2024 | All rights reserved.")
+st.write(f"Last accessed on: {last_seen.strftime('%Y-%m-%d %H:%M:%S')}")
