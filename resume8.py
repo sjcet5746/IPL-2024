@@ -2,7 +2,6 @@ import streamlit as st
 import requests
 import json
 import os
-import speech_recognition as sr
 import pandas as pd
 import altair as alt
 from PIL import Image
@@ -28,24 +27,6 @@ def main():
     api_key = "AIzaSyBvnTpjwspsYBMlHN4nMEvybEmZL8mwAQ4"
     cse_id = "464947c4e602c4ee8"
     query = st.text_input("Enter your search query", "", key='query_input')
-
-    # Voice search feature
-    if st.button("Use Voice Search"):
-        recognizer = sr.Recognizer()
-        with sr.Microphone() as source:
-            st.write("Listening...")
-            audio = recognizer.listen(source)
-            try:
-                query = recognizer.recognize_google(audio)
-                st.write(f"You said: {query}")
-                if api_key and cse_id and query:
-                    results = google_search(api_key, cse_id, query)
-                    update_search_history(query, "Voice")
-                    display_results(results)
-            except sr.UnknownValueError:
-                st.error("Could not understand audio.")
-            except sr.RequestError:
-                st.error("Could not request results from Google.")
 
     # Trigger search on Enter or when search button is clicked
     if st.button("Search") or st.session_state.get('query_input'):
