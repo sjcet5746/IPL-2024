@@ -1,11 +1,10 @@
 import os
 import streamlit as st
-import build
 from datetime import datetime
 
 # Set up YouTube API
 API_KEY = "AIzaSyA20DXMC3HeqHs9sOMQUQ041wEkgsoFXb4"  # Replace with your YouTube Data API v3 key
-youtube = build('youtube', 'v3', developerKey=API_KEY)
+
 
 # Function to search YouTube videos
 def search_youtube(query, max_results=5):
