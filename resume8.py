@@ -1,111 +1,72 @@
 import streamlit as st
-from fpdf import FPDF
-import os
-
-# Function to generate the resume PDF
-class PDF(FPDF):
-    def header(self):
-        self.set_font('Arial', 'B', 12)
-        self.cell(0, 10, 'Resume', 0, 1, 'C')
-
-    def footer(self):
-        self.set_y(-15)
-        self.set_font('Arial', 'I', 8)
-        self.cell(0, 10, f'Page {self.page_no()}', 0, 0, 'C')
-
-    def add_social_links(self, social_links, social_photos):
-        self.set_font('Arial', 'B', 14)
-        self.cell(0, 10, "Social Links", ln=True)
-        self.set_font("Arial", size=12)
-        for name, link in social_links.items():
-            self.cell(0, 10, name, ln=True, link=link)
-            if name in social_photos:
-                try:
-                    photo_path = social_photos[name]
-                    self.image(photo_path, w=10, h=10)  # Small icon size
-                except RuntimeError as e:
-                    print(f"Error adding image for {name}: {e}")
-
-    def add_photo(self, photo):
-        if photo:
-            photo_path = "profile_photo.jpg"
-            try:
-                with open(photo_path, "wb") as f:
-                    f.write(photo.getbuffer())
-                self.image(photo_path, x=10, y=10, w=30)  # Adjust size and position as needed
-            except Exception as e:
-                print(f"Error saving profile photo: {e}")
-            finally:
-                if os.path.exists(photo_path):
-                    os.remove(photo_path)
+from reportlab.lib.pagesizes import letter
+from reportlab.pdfgen import canvas
+from io import BytesIO
 
 # Function to generate the resume PDF
 def create_resume(data):
-    pdf = PDF()
-    pdf.add_page()
-    pdf.set_font("Arial", size=12)
-
-    # Add profile photo if provided
-    pdf.add_photo(data["photo"])
+    # Create a BytesIO buffer for the PDF
+    buffer = BytesIO()
+    p = canvas.Canvas(buffer, pagesize=letter)
+    width, height = letter
 
     # Title
-    pdf.set_font("Arial", 'B', 16)
-    pdf.cell(0, 10, data["name"], ln=True, align='C')
-    pdf.set_font("Arial", size=12)
-    pdf.cell(0, 10, data["profession"], ln=True, align='C')
-    pdf.cell(0, 10, data["contact_info"], ln=True, align='C')
-    pdf.ln(10)
+    p.setFont("Helvetica-Bold", 16)
+    p.drawString(100, height - 50, data["name"])
+    p.setFont("Helvetica", 12)
+    p.drawString(100, height - 70, data["profession"])
+    p.drawString(100, height - 90, data["contact_info"])
 
     # Add student summary
-    pdf.set_font("Arial", 'B', 14)
-    pdf.cell(0, 10, "Summary", ln=True)
-    pdf.set_font("Arial", size=12)
-    pdf.multi_cell(0, 10, data["summary"])  # Allow multiline summary
-
-    pdf.ln(10)
-
-    # Add social links (now at the end)
-    pdf.add_social_links(data["social_links"], data["social_photos"])
+    p.setFont("Helvetica-Bold", 14)
+    p.drawString(100, height - 120, "Summary:")
+    p.setFont("Helvetica", 12)
+    y = height - 140
+    for line in data["summary"].split('\n'):
+        p.drawString(100, y, line)
+        y -= 15  # Move down for the next line
 
     # Education Section
-    pdf.set_font("Arial", 'B', 14)
-    pdf.cell(0, 10, "Education", ln=True)
-    pdf.set_font("Arial", size=12)
-    for education in data["education"]:
-        pdf.cell(0, 10, education, ln=True)
-
-    pdf.ln(10)
+    p.setFont("Helvetica-Bold", 14)
+    p.drawString(100, y, "Education:")
+    p.setFont("Helvetica", 12)
+    y -= 20
+    for edu in data["education"]:
+        p.drawString(100, y, edu)
+        y -= 15
 
     # Skills Section
-    pdf.set_font("Arial", 'B', 14)
-    pdf.cell(0, 10, "Skills", ln=True)
-    pdf.set_font("Arial", size=12)
+    p.setFont("Helvetica-Bold", 14)
+    p.drawString(100, y, "Skills:")
+    p.setFont("Helvetica", 12)
+    y -= 20
     for skill in data["skills"]:
-        pdf.cell(0, 10, skill, ln=True)
-
-    pdf.ln(10)
+        p.drawString(100, y, skill)
+        y -= 15
 
     # Certifications Section
-    pdf.set_font("Arial", 'B', 14)
-    pdf.cell(0, 10, "Certifications", ln=True)
-    pdf.set_font("Arial", size=12)
+    p.setFont("Helvetica-Bold", 14)
+    p.drawString(100, y, "Certifications:")
+    p.setFont("Helvetica", 12)
+    y -= 20
     for cert in data["certifications"]:
-        pdf.cell(0, 10, cert, ln=True)
-
-    pdf.ln(10)
+        p.drawString(100, y, cert)
+        y -= 15
 
     # Honors & Awards Section
-    pdf.set_font("Arial", 'B', 14)
-    pdf.cell(0, 10, "Honors & Awards", ln=True)
-    pdf.set_font("Arial", size=12)
+    p.setFont("Helvetica-Bold", 14)
+    p.drawString(100, y, "Honors & Awards:")
+    p.setFont("Helvetica", 12)
+    y -= 20
     for award in data["awards"]:
-        pdf.cell(0, 10, award, ln=True)
+        p.drawString(100, y, award)
+        y -= 15
 
-    # Save PDF to a file
-    pdf_file = "resume.pdf"
-    pdf.output(pdf_file)
+    # Save the PDF to the buffer
+    p.save()
+    buffer.seek(0)
 
-    return pdf_file
+    return buffer
 
 # Streamlit app
 def main():
@@ -209,12 +170,11 @@ def main():
         }
 
         # Create resume PDF
-        pdf_file = create_resume(user_data)
+        pdf_buffer = create_resume(user_data)
         
         # Provide download button
-        with open(pdf_file, "rb") as file:
-            st.download_button("Download Resume", file, file_name=pdf_file, mime='application/pdf')
-        
+        st.download_button("Download Resume", pdf_buffer, file_name="resume.pdf", mime='application/pdf')
+
         # Display the resume
         st.header("Your Resume")
         st.write(f"**Name:** {name}")
