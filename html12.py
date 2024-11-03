@@ -3,7 +3,7 @@ import streamlit as st
 def main():
     st.title("HTML, CSS, and JavaScript Code Editor")
 
-    # Static example of HTML code with CSS and JavaScript
+    # Example HTML with CSS and JavaScript
     example_html = """<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -11,14 +11,16 @@ def main():
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sample HTML with CSS and JavaScript</title>
     <style>
-        body { font-family: Arial, sans-serif; }
-        h1 { color: blue; }
-        p { color: green; }
+        body { font-family: Arial, sans-serif; background-color: #f4f4f9; }
+        h1 { color: #3333ff; }
+        p { color: #555555; }
+        button { padding: 10px 20px; background-color: #28a745; color: #fff; border: none; border-radius: 5px; cursor: pointer; }
+        button:hover { background-color: #218838; }
     </style>
 </head>
 <body>
     <h1>Hello, World!</h1>
-    <p>This is a sample HTML code with CSS and JavaScript.</p>
+    <p>This is a sample HTML page with CSS and JavaScript.</p>
     <button onclick="displayMessage()">Click Me</button>
     <script>
         function displayMessage() {
@@ -67,10 +69,11 @@ def main():
 
     # Display the live output of the HTML, CSS, and JavaScript code below the editor
     st.markdown("## Live Output:")
+    # Embedding the HTML code in an iframe with srcdoc to support live rendering
     output_html = f"""
-    <iframe srcdoc="{st.session_state.html_code}" style='width: 100%; height: 500px; border: none;'></iframe>
+    <iframe srcdoc="{st.session_state.html_code.replace('"', '&quot;')}" style="width: 100%; height: 500px; border: none;"></iframe>
     """
-    st.markdown(output_html, unsafe_allow_html=True)
+    st.components.v1.html(output_html, height=500)
 
 if __name__ == "__main__":
     main()
