@@ -1,71 +1,136 @@
 import streamlit as st
-from datetime import datetime
+import requests
+import json
+import os
+import speech_recognition as sr
+import pandas as pd
+import altair as alt
+from PIL import Image
+from io import BytesIO
 
-# Streamlit app
-st.title("Text to Speech Converter")
+# Function to perform Google Search
+def google_search(api_key, cse_id, query, num_results=10):
+    url = "https://www.googleapis.com/customsearch/v1"
+    params = {'key': api_key, 'cx': cse_id, 'q': query, 'num': num_results}
+    response = requests.get(url, params=params)
+    return response.json()
 
-# Sidebar
-st.sidebar.header("Settings")
-st.sidebar.subheader("Last seen")
-st.sidebar.write(datetime.now().strftime("%Y-%m-%d %H:%M:%S"))  # Display current date and time
+# Initialize search history and data storage for analytics
+if 'search_history' not in st.session_state:
+    st.session_state.search_history = []
+if 'search_data' not in st.session_state:
+    st.session_state.search_data = pd.DataFrame(columns=["Query", "Source", "Timestamp"])
 
-# Definition of quantum computing
-quantum_computing_definition = (
-    "Quantum computing is a type of computation that harnesses the unique properties of quantum mechanics. "
-    "Unlike classical computers that use bits as the smallest unit of data, quantum computers use quantum bits, "
-    "or qubits, which can exist in multiple states at once. This allows quantum computers to process complex "
-    "calculations much faster than classical computers, making them suitable for tasks such as cryptography, "
-    "optimization problems, and simulations of quantum systems."
-)
+def main():
+    st.title("Enhanced Google Search Application")
 
-# Language selection with example texts
-languages = {
-    "en": quantum_computing_definition,  # English
-    "es": "La computación cuántica es un tipo de computación que aprovecha las propiedades únicas de la mecánica cuántica.",  # Spanish
-    "zh": "量子计算是一种利用量子力学独特性质的计算方式。",  # Chinese
-    "hi": "क्वांटम कंप्यूटिंग एक प्रकार की गणना है जो क्वांटम यांत्रिकी की अद्वितीय विशेषताओं का लाभ उठाती है।",  # Hindi
-    "ar": "الحوسبة الكمومية هي نوع من الحوسبة التي تستفيد من الخصائص الفريدة لميكانيكا الكم.",  # Arabic
-    "bn": "কোয়ান্টাম কম্পিউটিং হল একটি প্রকারের গণনা যা কোয়ান্টাম মেকানিক্সের অনন্য বৈশিষ্ট্যগুলিকে কাজে লাগায়।",  # Bengali
-    "pt": "A computação quântica é um tipo de computação que aproveita as propriedades únicas da mecânica quântica.",  # Portuguese
-    "ru": "Квантовые вычисления — это тип вычислений, который использует уникальные свойства квантовой механики.",  # Russian
-    "ja": "量子コンピューティングは、量子力学の独自の特性を利用する計算の一種です。",  # Japanese
-    "de": "Quantencomputing ist eine Art von Berechnung, die die einzigartigen Eigenschaften der Quantenmechanik nutzt.",  # German
-    "fr": "L'informatique quantique est un type de calcul qui exploite les propriétés uniques de la mécanique quantique.",  # French
-    "it": "Il calcolo quantistico è un tipo di calcolo che sfrutta le proprietà uniche della meccanica quantistica.",  # Italian
-    "ko": "양자 컴퓨팅은 양자 역학의 고유한 특성을 활용하는 계산 유형입니다.",  # Korean
-    "tr": "Kuantum hesaplama, kuantum mekaniğinin benzersiz özelliklerini kullanan bir hesaplama türüdür.",  # Turkish
-    "vi": "Điện toán lượng tử là một loại hình tính toán khai thác những đặc tính độc đáo của cơ học lượng tử.",  # Vietnamese
-    "pl": "Komputery kwantowe to rodzaj obliczeń, które wykorzystują unikalne właściwości mechaniki kwantowej.",  # Polish
-    "uk": "Квантові обчислення — це тип обчислень, який використовує унікальні властивості квантової механіки.",  # Ukrainian
-    "fa": "محاسبات کوانتومی نوعی محاسبه است که از ویژگی‌های منحصر به فرد مکانیک کوانتومی بهره می‌برد.",  # Persian
-    "th": "การคำนวณควอนตัมเป็นประเภทของการคำนวณที่ใช้ประโยชน์จากคุณสมบัติที่ไม่เหมือนใครของกลศาสตร์ควอนตัม.",  # Thai
-    "ml": "ക്വാണ്ടം കമ്പ്യൂട്ടിംഗ് ഒരു കമ്പ്യൂട്ടിംഗാണ്, ക്വാണ്ടം യാന്ത്രികതയുടെ പ്രത്യേകതകൾ പ്രയോജനപ്പെടുത്തുന്നു.",  # Malayalam
-    "ta": "குவாண்டம் கணினி என்பது குவாண்டம் மெக்கானிக்சின் தனிப்பட்ட பண்புகளை பயன்படுத்தும் கணினி வகையாகும்.",  # Tamil
-    "kn": "ಕ್ವಾಂಟಮ್ ಕಂಪ್ಯೂಟಿಂಗ್ ಎಂದರೆ ಕ್ವಾಂಟಮ್ ಮೆಕ್ಯಾನಿಕ್‌ಗಳ ವಿಶೇಷತೆಗಳನ್ನು ಬಳಸುವ ಪ್ರಕಾರದ ಕಂಪ್ಯೂಟಿಂಗ್.",  # Kannada
-    "te": "క్వాంటం కంప్యూటింగ్ అనేది క్వాంటం యాంత్రిక శాస్త్రం యొక్క ప్రత్యేకతలను ఉపయోగించే ఒక శ్రేణి కంప్యూటింగ్."  # Telugu
-}
+    # User inputs for API key, CSE ID, and search query
+    api_key = "AIzaSyBvnTpjwspsYBMlHN4nMEvybEmZL8mwAQ4"
+    cse_id = "464947c4e602c4ee8"
+    query = st.text_input("Enter your search query", "", key='query_input')
 
-# Top 10 Indian languages
-indian_languages = {
-    "hi": "हिन्दी (Hindi) - क्वांटम कंप्यूटिंग एक प्रकार की गणना है जो क्वांटम यांत्रिकी की अद्वितीय विशेषताओं का लाभ उठाती है。",
-    "bn": "বাংলা (Bengali) - কোয়ান্টাম কম্পিউটিং হল একটি প্রকারের গণনা যা কোয়ান্টাম মেকানিক্সের অনন্য বৈশিষ্ট্যগুলিকে কাজে লাগায়।",
-    "te": "తెలుగు (Telugu) - క్వాంటం కంప్యూటింగ్ అనేది క్వాంటం యాంత్రిక శాస్త్రం యొక్క ప్రత్యేకతలను ఉపయోగించే ఒక శ్రేణి కంప్యూటింగ్.",
-    "ta": "தமிழ் (Tamil) - குவாண்டம் கணினி என்பது குவாண்டம் மெக்கானிக்சின் தனிப்பட்ட பண்புகளை பயன்படுத்தும் கணினி வகையாகும்.",
-    "ml": "മലയാളം (Malayalam) - ക്വാണ്ടം കമ്പ്യൂട്ടിംഗ് ഒരു കമ്പ്യൂട്ടിംഗാണ്, ക്വാണ്ടം യാന്ത്രികതയുടെ പ്രത്യേകതകൾ പ്രയോജനപ്പെടുത്തുന്നു.",
-    "kn": "ಕನ್ನಡ (Kannada) - ಕ್ವಾಂಟಮ್ ಕಂಪ್ಯೂಟಿಂಗ್ ಎಂದರೆ ಕ್ವಾಂಟ್ ಮೆಕ್ಯಾನಿಕ್‌ಗಳ ವಿಶೇಷತೆಗಳನ್ನು ಬಳಸುವ ಪ್ರಕಾರದ ಕಂಪ್ಯೂಟಿಂಗ್.",
-    "mr": "मराठी (Marathi) - क्वांटम संगणक एक प्रकारचा संगणक आहे जो क्वांटम यांत्रिकीच्या अद्वितीय गुणधर्मांचा उपयोग करतो.",
-    "gu": "ગુજરાતી (Gujarati) - ક્વાન્ટમ કમ્પ્યુટિંગ એ એવી ગણતરી છે જે ક્વાન્ટમ મિકેનિક્સની વિશિષ્ટતાઓનો ઉપયોગ કરે છે.",
-    "or": "ଓଡ଼ିଆ (Odia) - କ୍ୱାଣ୍ଟମ୍ କମ୍ପ୍ୟୁଟିଂ ହେଉଛି ଏକ ପ୍ରକାରର କମ୍ପ୍ୟୁଟିଂ, ଯାହା କ୍ୱାଣ୍ଟମ୍ ମେକାନିକ୍ସର ଅନନ୍ୟ ଗୁଣଧର୍ମଗୁଡିକୁ ଲାଭ ଦେଇଥାଏ।",
-    "pa": "ਪੰਜਾਬੀ (Punjabi) - ਕੁਆਂਟਮ ਕੰਪਿਊਟਿੰਗ ਇੱਕ ਕਿਸਮ ਦਾ ਕੰਪਿਊਟਿੰਗ ਹੈ ਜੋ ਕੁਆਂਟਮ ਮਕੈਨਿਕਸ ਦੇ ਵਿਲੱਖਣ ਗੁਣਾਂ ਦਾ ਲਾਭ ਲੈਂਦੀ ਹੈ।"
-}
+    # Voice search feature
+    if st.button("Use Voice Search"):
+        recognizer = sr.Recognizer()
+        with sr.Microphone() as source:
+            st.write("Listening...")
+            audio = recognizer.listen(source)
+            try:
+                query = recognizer.recognize_google(audio)
+                st.write(f"You said: {query}")
+                if api_key and cse_id and query:
+                    results = google_search(api_key, cse_id, query)
+                    update_search_history(query, "Voice")
+                    display_results(results)
+            except sr.UnknownValueError:
+                st.error("Could not understand audio.")
+            except sr.RequestError:
+                st.error("Could not request results from Google.")
 
-# Combine Indian languages with existing languages
-languages.update(indian_languages)
+    # Trigger search on Enter or when search button is clicked
+    if st.button("Search") or st.session_state.get('query_input'):
+        if api_key and cse_id and query:
+            results = google_search(api_key, cse_id, query)
+            update_search_history(query, "Text")
+            display_results(results)
+        else:
+            st.error("Please enter API Key, CSE ID, and a search query.")
+    
+    # Button to show search history
+    if st.button("Show Search History"):
+        if st.session_state.search_history:
+            st.write("Search History:")
+            for h in st.session_state.search_history:
+                st.write(h)
+        else:
+            st.write("No search history found.")
 
-# User input
-selected_language = st.selectbox("Select the language:", list(languages.keys()))
-example_text = languages[selected_language]
-user_input = st.text_area("Enter the text you want to modify:", example_text)
+    # Button to clear search history
+    if st.button("Clear Search History"):
+        st.session_state.search_history.clear()
+        st.session_state.search_data = pd.DataFrame(columns=["Query", "Source", "Timestamp"])
+        st.success("Search history cleared.")
 
-# Footer
-st.markdown("<footer style='text-align: center; padding: 10px;'><small>© 2024 SriKrishna Text to Speech Converter. All rights reserved.</small></footer>", unsafe_allow_html=True)
+    # Interactive Analytics Dashboard
+    st.subheader("Search Analytics")
+    if not st.session_state.search_data.empty:
+        # Chart of search counts over time
+        search_trends = alt.Chart(st.session_state.search_data).mark_line().encode(
+            x='Timestamp:T',
+            y='count():Q',
+            color='Source:N',
+            tooltip=['Query:N', 'count():Q', 'Source:N']
+        ).properties(width=600, height=300)
+        st.altair_chart(search_trends, use_container_width=True)
+
+        # Most popular queries
+        st.write("**Top Search Queries**")
+        top_queries = (
+            st.session_state.search_data['Query']
+            .value_counts()
+            .head(5)
+            .reset_index()
+            .rename(columns={'index': 'Query', 'Query': 'Count'})
+        )
+        st.write(top_queries)
+
+def display_results(results):
+    if results and 'items' in results:
+        st.session_state.results = results
+        for i, item in enumerate(results['items']):
+            st.write(f"**{i + 1}. {item['title']}**")
+            st.write(f"[Link]({item['link']})")
+            st.write(f"{item['snippet']}\n")
+            
+            # Check if 'pagemap' and 'cse_image' exist and if 'src' is in 'cse_image'
+            if 'pagemap' in item and 'cse_image' in item['pagemap']:
+                image_data = item['pagemap']['cse_image'][0]
+                image_url = image_data.get('src')  # Use .get() to avoid KeyError
+                
+                # Try to load and display the image if 'src' exists
+                if image_url:
+                    try:
+                        response = requests.get(image_url)
+                        img = Image.open(BytesIO(response.content))
+                        st.image(img, width=100)
+                    except Exception as e:
+                        st.write("**Image could not be loaded.**")
+                else:
+                    st.write("**Image source not available.**")
+            else:
+                st.write("No image available for this result.")
+    else:
+        st.write("No results found.")
+
+def update_search_history(query, source):
+    # Update search history and analytics data
+    st.session_state.search_history.append(query)
+    new_data = pd.DataFrame({
+        "Query": [query],
+        "Source": [source],
+        "Timestamp": [pd.Timestamp.now()]
+    })
+    st.session_state.search_data = pd.concat([st.session_state.search_data, new_data], ignore_index=True)
+
+if __name__ == "__main__":
+    main()
